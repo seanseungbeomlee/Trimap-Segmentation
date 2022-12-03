@@ -4,43 +4,25 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers, models
+import nibabel as nib
 import pathlib
 import h5py
 import os
+import sys
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+from IPython.core import ultratb
+sys.excepthook = ultratb.FormattedTB(mode='Verbose', color_scheme='Linux', call_pdb=False)
 
 # Read data
 train_metad = pd.read_csv('Data/BraTS20 Training Metadata.csv')
-# surv_info = pd.read_csv('Data/BraTS2020_training_data/content/data/survival_info.csv')
-# name_map = pd.read_csv('Data/BraTS2020_training_data/content/data/name_mapping.csv')
-# metad = pd.read_csv('Data/BraTS2020_training_data/content/data/meta_data.csv')
-# print(train_metad)
 
-directory = r'Data/BraTS2020_training_data/content/data//'
-ds_train = tf.data.Dataset.list_files(str(pathlib.Path(directory+'*.h5')))
-
-@tf.function(input_signature=[tf.TensorSpec(None, tf.string)])
-def process_path(file_path):
-    # need to use non tf functions, call py_function
-    image, mask = tf.py_function(func=process_path_helper, inp=[file_path], Tout=[tf.float32, tf.float32])
-    return image, mask
-
-def process_path_helper(file_path):
-    # arbitrary Python code can be used here
-    file_path = file_path.numpy().decode('ascii')
-    f = h5py.File(file_path, 'r') 
-    image = f['image'][()] 
-    mask = f['mask'][()] 
-    f.close()
-    return image,mask
-
-# e.g. ds_train[0] gives pair of image and mask tensors
-# can also call a batch() function on this
-# ds_train = ds_train.map(process_path)
-# print(ds_train.as_numpy_iterator().next())
-
-x = np.array(h5py.File('Data/BraTS2020_training_data/content/data/volume_60_slice_6.h5', 'r'))
-print(x)
+# Plot sample image
+sample_filename = '/Users/sean/Documents/GitHub/Trimap-Segmentation/Data/BraTS2020_TrainingData/MICCAI_BraTS2020_TrainingData/BraTS20_Training_001/BraTS20_Training_001_flair.nii'
+sample_img = nib.load(sample_filename)
+sample_img = np.asanyarray(sample_img.dataobj)
+sample_img = np.rot90(sample_img)
+plt.imshow(sample_img[:,:,65], cmap='bone')
+plt.show()
 
 # Initialize Model:
 model = models.Sequential()
@@ -63,6 +45,7 @@ model.compile(optimizer='adam',
 # history = model.fit(train_images, train_labels, epochs=10, 
 #                     validation_data=(test_images, test_labels))
 
+# Initialize hyperparameters
 batch_size = 1
 img_height = 240
 img_width = 240
