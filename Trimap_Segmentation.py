@@ -14,15 +14,43 @@ from IPython.core import ultratb
 sys.excepthook = ultratb.FormattedTB(mode='Verbose', color_scheme='Linux', call_pdb=False)
 
 # Read data
-train_metad = pd.read_csv('Data/BraTS20 Training Metadata.csv')
+# train_metad = pd.read_csv('Data/BraTS20 Training Metadata.csv')
 
-# Plot sample image
-sample_filename = '/Users/sean/Documents/GitHub/Trimap-Segmentation/Data/BraTS2020_TrainingData/MICCAI_BraTS2020_TrainingData/BraTS20_Training_001/BraTS20_Training_001_flair.nii'
-sample_img = nib.load(sample_filename)
-sample_img = np.asanyarray(sample_img.dataobj)
-sample_img = np.rot90(sample_img)
-plt.imshow(sample_img[:,:,65], cmap='bone')
-plt.show()
+# Data parser
+datadir = '/Users/sean/Documents/GitHub/Trimap-Segmentation/Data/BraTS2020_TrainingData/MICCAI_BraTS2020_TrainingData'
+
+def get_data(filetype):
+  images = []
+  for subdir, dirs, files in os.walk(datadir):
+      for file in files:
+        if filetype in file:
+          filename = os.path.join(subdir, file)
+          try:
+            img = nib.load(filename)
+            img = np.asanyarray(img.dataobj)
+            img = np.rot90(img)
+            images.append(img)
+          except:
+            continue
+        else:
+          continue
+  return images
+
+# Plot helper function
+def plot(images):
+  l = len(images)
+  rows = cols = (l//2) + 1
+  fig, ax = plt.subplots(1, l)
+  for i in range(l):
+    ax[i].imshow(images[i][:,:,65], cmap='bone')
+    ax[i].axis('off')
+  plt.show()
+
+images = get_data('flair')
+masks = get_data('seg')
+# Plot sample images
+plot(images[:4])
+plot(masks[:4])
 
 # Initialize Model:
 model = models.Sequential()
@@ -35,7 +63,7 @@ model.add(layers.Flatten())
 model.add(layers.Dense(64, activation='relu'))
 model.add(layers.Dense(2))
 
-print(model.summary())
+# print(model.summary())
 
 # chose Adam based on https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7407771/
 model.compile(optimizer='adam',
