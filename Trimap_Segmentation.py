@@ -14,7 +14,8 @@ from IPython.core import ultratb
 sys.excepthook = ultratb.FormattedTB(mode='Verbose', color_scheme='Linux', call_pdb=False)
 
 # Read data
-# train_metad = pd.read_csv('Data/BraTS20 Training Metadata.csv')
+train_metad = pd.read_csv('Data/BraTS20 Training Metadata.csv')
+print(train_metad['slice_path'])
 
 # Data parser
 datadir = '/Users/sean/Documents/GitHub/Trimap-Segmentation/Data/BraTS2020_TrainingData/MICCAI_BraTS2020_TrainingData'
