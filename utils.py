@@ -1,68 +1,38 @@
+import numpy as np
 import tensorflow as tf
-from tensorflow import keras
-from tqdm import tqdm
-import UNET
-import utils
-import pathlib
-import argparse
-import shutil
-import os
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+import h5py
 
-parser = argparse.ArgumentParser(description='Train UNET model.')
-parser.add_argument('--num_epochs', type=int, default=1, help='number of epochs')
-parser.add_argument('--batch_size', type=int, default=64, help='batch size')
-parser.add_argument('--lr', type=int, default=.001, help='learning rate')
-args = parser.parse_args()
+@tf.function(input_signature=[tf.TensorSpec(None, tf.string)])
+def process_path(file_path):
+    # need to use non tf functions, call py_function
+    image, mask = tf.py_function(func=process_path_helper, inp=[file_path], Tout=[tf.float32, tf.float32])
+    image = tf.reshape(image, (240,240,4))
+    mask = tf.reshape(mask, (240,240,3))
+    return image, mask
 
+def process_path_helper(file_path):
+    # arbitrary Python code can be used here
+    file_path = file_path.numpy().decode('ascii')
+    f = h5py.File(file_path, 'r') 
+    image = f['image'][()] 
+    mask = f['mask'][()] 
+    f.close()
+    return image,mask
 
-# Hyperparameters
-num_epochs = args.num_epochs
-batch_size = args.batch_size
-lr = args.lr
-optim = keras.optimizers.Adam()
-loss_func = tf.keras.losses.BinaryCrossentropy(from_logits=True)
-print("<<<Hyperparameters initialized>>>")
+def get_dataname(volume_idx, slice_idxs):
+    names = []
+    for slice_idx in range(len(slice_idxs)+1):
+        names.append("volume_" + str(volume_idx) + "_slice_" + str(slice_idx))
+    return names
 
-# TODO: Change directory of training set
-directory = r'/home/sl84/ECE_471_MP3/archive/BraTS2020_training_data/content/data//'
+# TODO: Split the data into training and testing
+def split_data(split_ratio):
+    volume_idxs = np.arange(1, 370)
+    split = int(len(volume_idxs)*split_ratio)
+    train_idxs = volume_idxs[:split]
+    test_idxs = volume_idxs[split:]
+    slice_idxs = np.arange(0, 154)
+    train_names = np.array([get_dataname(i, slice_idxs) for i in train_idxs]).flatten()
+    test_names = np.array([get_dataname(i, slice_idxs) for i in test_idxs]).flatten()
 
-# TODO: Create test and train dataset directories and copy relevant data files to each directory
-train_dir = '/home/sl84/ECE_471_MP3/train_data'
-test_dir = '/home/sl84/ECE_471_MP3/test_data'
-# shutil.rmtree(train_dir); shutil.rmtree(test_dir)
-if not os.path.exists(train_dir) and not os.path.exists(test_dir):
-    # TODO: Split the data into training and testing
-    train_names, test_names = utils.split_data(0.8)
-    os.mkdir(train_dir)
-    os.mkdir(test_dir)
-    print("<<<Created training and testing dataset directories>>>")
-    for train_name in tqdm(train_names):
-        shutil.copy(directory+train_name+'.h5', train_dir)
-    for test_name in tqdm(test_names):
-        shutil.copy(directory+test_name+'.h5', test_dir)
-    print("<<<Data split completed>>>")
-
-ds_train = tf.data.Dataset.list_files(str(pathlib.Path(train_dir)))
-ds_train = ds_train.map(utils.process_path).batch(batch_size)
-
-inputs = keras.Input(shape=(240,240,4))
-model = UNET.model(inputs)
-
-if __name__ == "__main__":
-    model.compile(
-        loss=loss_func,
-        optimizer=optim(learning_rate=lr),
-        metrics=["accuracy"]
-    )
-    model.summary()
-    model.fit(ds_train, epochs=num_epochs)
-    # TODO: Change to filepath of model to save
-    model.save(r'unet_model.h5')
-
-    # TODO: Change to directory of of test set
-    # directory = r'/archive/BraTS2020_training_data/content/test//'
-    # ds_test = tf.data.Dataset.list_files(str(pathlib.Path(directory+'*.h5')))
-    # batch_size = 1
-    # ds_test = ds_test.map(utils.process_path).batch(batch_size)
-    # model.evaluate(ds_test)
+    return train_names, test_names

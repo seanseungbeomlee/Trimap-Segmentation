@@ -4,17 +4,22 @@ from tqdm import tqdm
 import UNET
 import utils
 import pathlib
+import argparse
 import shutil
 import os
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
+parser = argparse.ArgumentParser(description='Train UNET model.')
+parser.add_argument('--num_epochs', type=int, default=1, help='number of epochs')
+parser.add_argument('--batch_size', type=int, default=64, help='batch size')
+parser.add_argument('--lr', type=int, default=.001, help='learning rate')
+args = parser.parse_args()
+
+
 # Hyperparameters
-num_epochs = 10
-batch_size = 32
-img_height = 240
-img_width = 240
-lr = 3e-4
-optim = keras.optimizers.Adam()
+num_epochs = args.num_epochs
+batch_size = args.batch_size
+lr = args.lr
 loss_func = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 print("<<<Hyperparameters initialized>>>")
 
@@ -37,8 +42,9 @@ if not os.path.exists(train_dir) and not os.path.exists(test_dir):
         shutil.copy(directory+test_name+'.h5', test_dir)
     print("<<<Data split completed>>>")
 
-ds_train = tf.data.Dataset.list_files(str(pathlib.Path(train_dir)))
+ds_train = tf.data.Dataset.list_files(str(pathlib.Path(train_dir+"//*")))
 ds_train = ds_train.map(utils.process_path).batch(batch_size)
+print(ds_train)
 
 inputs = keras.Input(shape=(240,240,4))
 model = UNET.model(inputs)
@@ -46,7 +52,7 @@ model = UNET.model(inputs)
 if __name__ == "__main__":
     model.compile(
         loss=loss_func,
-        optimizer=optim(learning_rate=lr),
+        optimizer=keras.optimizers.Adam(learning_rate=lr),
         metrics=["accuracy"]
     )
     model.summary()
