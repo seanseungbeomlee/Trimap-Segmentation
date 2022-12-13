@@ -1,3 +1,4 @@
+import numpy as np
 import tensorflow as tf
 import h5py
 
@@ -17,3 +18,21 @@ def process_path_helper(file_path):
     mask = f['mask'][()] 
     f.close()
     return image,mask
+
+def get_dataname(volume_idx, slice_idxs):
+    names = []
+    for slice_idx in range(len(slice_idxs)+1):
+        names.append("volume_" + str(volume_idx) + "_slice_" + str(slice_idx))
+    return names
+
+# TODO: Split the data into training and testing
+def split_data(split_ratio):
+    volume_idxs = np.arange(1, 370)
+    split = int(len(volume_idxs)*split_ratio)
+    train_idxs = volume_idxs[:split]
+    test_idxs = volume_idxs[split:]
+    slice_idxs = np.arange(0, 154)
+    train_names = np.array([get_dataname(i, slice_idxs) for i in train_idxs]).flatten()
+    test_names = np.array([get_dataname(i, slice_idxs) for i in test_idxs]).flatten()
+
+    return train_names, test_names
