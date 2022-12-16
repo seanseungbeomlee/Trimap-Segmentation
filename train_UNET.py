@@ -58,7 +58,7 @@ if __name__ == "__main__":
     model.summary()
     model.fit(ds_train, epochs=num_epochs)
     # TODO: Change to filepath of model to save
-    model.save(r'unet_model.h5')
+    model.save(r'unet_model_final.h5')
 
     # TODO: Change to directory of of test set
     # directory = r'/archive/BraTS2020_training_data/content/test//'

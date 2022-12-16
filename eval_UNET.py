@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
@@ -35,16 +36,16 @@ num_false_tumor = 0
 num_false_good = 0
 
 count = 0
-for batch in ds_test:
-    if count % 500 == 0:
-        print(count)
+for batch in tqdm(ds_test):
+    # if count % 500 == 0:
+    #     print(count)
 
     image, mask = batch
     y = model(image).numpy()
     mask = mask.numpy()
 
-    zeros = y < -5
-    ones = y >= -5
+    zeros = y < 0.001
+    ones = y >= 0.001
     y[zeros] = 0.0
     y[ones] = 1.0
     

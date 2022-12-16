@@ -97,6 +97,7 @@ def model(inputs):
     yyy1 = keras.activations.relu(yyy1)
     
     outputs = layers.Conv2D(filters=3,kernel_size=1,padding='same')(yyy1)
+    outputs = keras.activations.sigmoid(outputs)
     
     model = keras.Model(inputs=inputs, outputs = outputs)
     return model
